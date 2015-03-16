@@ -50,15 +50,8 @@ var Engine = (function(global) {
         update(dt);
         render();
 
+        // TODO: Move to render and make a function
         if(gameOver){
-            ctx.textAlign = "center"
-            ctx.font = "36pt Impact";
-            ctx.strokeStyle = "black";
-            ctx.font = "36pt Impact";
-            ctx.fillStyle = "white";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
-            ctx.lineWidth = 3;
-            ctx.strokeText("GAME OVER", canvas.width / 2, canvas.height / 2);
             return;
         }
 
@@ -103,15 +96,39 @@ var Engine = (function(global) {
         allEnemies.forEach(function(enemy) {
             collision = hasCollision(player, enemy);
             if(collision){
-                player.reset();
                 gameOver = true;
             }
         });
+
+        var gemsToPreserve = Array()
+        gems.forEach(function(gem) {
+            collision = hasCollision(player, gem);
+            if(collision){
+                player.points++;
+            } else {
+                gemsToPreserve.push(gem);
+            }
+        });
+
+        while(gemsToPreserve.length < 3){
+            var newGem = new Gem(getRandomInt(0,4), getRandomInt(1,3))
+            var theSame = false;
+            gemsToPreserve.forEach(function(oldGem) {
+                if(oldGem.x === newGem.x && oldGem.y === newGem.y){
+                    theSame = true;
+                }
+            });
+
+            if(!theSame){
+                gemsToPreserve.push(newGem);
+            }
+        }
+
+        gems = gemsToPreserve;
     }
 
-    function hasCollision(player, enemy){
-        //console.log(Math.round(enemy.x), player.x, Math.round(enemy.y), player.y);
-        return (player.y === Math.round(enemy.y) && Math.abs(player.x - Math.round(enemy.x)) < 50 );
+    function hasCollision(player, object){
+        return (player.x === object.x && player.y === object.y);
     }
 
     /* This is called by the update function  and loops through all of the
@@ -124,6 +141,9 @@ var Engine = (function(global) {
     function updateEntities(dt) {
         allEnemies.forEach(function(enemy) {
             enemy.update(dt);
+        });
+        gems.forEach(function(gem) {
+            gem.update(dt);
         });
         player.update();
     }
@@ -167,8 +187,16 @@ var Engine = (function(global) {
             }
         }
 
-
+        //Clear top for score and stats
+        ctx.clearRect ( 0 , 0 , 505, 20 );
+        writeText("Points: "+player.points, 0, 20, null, 12);
+        
         renderEntities();
+
+        if(gameOver){
+            writeText("GAME OVER", canvas.width / 2, canvas.height / 2, "center", 36);
+            writeText("SCORE: "+player.points, canvas.width / 2, canvas.height / 2 + 40, "center", 20);
+        }
     }
 
     /* This function is called by the render function and is called on each game
@@ -179,12 +207,28 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
+
+        gems.forEach(function(gem) {
+            gem.render();
+        });
+
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
 
         player.render();
     }
+
+    function writeText(text, x, y, align, size){
+            ctx.textAlign = align;
+            ctx.font = size+"pt Impact";
+            ctx.strokeStyle = "black";
+            ctx.font = size+"pt Impact";
+            ctx.fillStyle = "white";
+            ctx.fillText(text, x, y);
+            ctx.lineWidth = 1;
+            ctx.strokeText(text, x, y);
+    };
 
     /* This function does nothing but it could have been a good place to
      * handle game reset states - maybe a new game menu or a game over screen
@@ -204,7 +248,9 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/char-cat-girl.png',
+        'images/Gem Blue.png'
     ]);
     Resources.onReady(init);
 
