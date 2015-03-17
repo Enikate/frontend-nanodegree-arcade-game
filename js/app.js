@@ -75,19 +75,19 @@ Player.prototype.update = function(dt) {
 // Move player according to key pressed.
 Player.prototype.handleInput = function(keyPressed) {
     if(keyPressed === 'left' && this.x > 0){
-        this.x -= 1;
+        this.x--;
     }
 
-    if(keyPressed === 'right' && this.x < 5 ){
-        this.x += 1;
+    if(keyPressed === 'right' && this.x < 4 ){
+        this.x++;
     }
 
     if(keyPressed === 'up' && this.y > 1){
-        this.y -= 1;
+        this.y--;
     }
 
-    if(keyPressed === 'down' && this.y < 6){
-        this.y += 1;
+    if(keyPressed === 'down' && this.y < 5){
+        this.y++;
     }
 }
 
