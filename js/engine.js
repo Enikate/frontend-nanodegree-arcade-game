@@ -6,7 +6,7 @@
  * A game engine works by drawing the entire game screen over and over, kind of
  * like a flipbook you may have created as a kid. When your player moves across
  * the screen, it may look like just that image/character is moving or being
- * drawn but that is not the case. What's really happening is the entire "scene"
+ * drawn but that is not the case. What's really happening is the entire 'scene'
  * is being drawn over and over, presenting the illusion of animation.
  *
  * This engine is available globally via the Engine variable and it also makes
@@ -14,7 +14,7 @@
  * a little simpler to work with.
  */
 
-var Engine = (function(global) {
+(function(global) {
     /* Predefine the variables we'll be using within this scope,
      * create the canvas element, grab the 2D context for that canvas
      * set the canvas elements height/width and add it to the DOM.
@@ -25,6 +25,7 @@ var Engine = (function(global) {
         ctx = canvas.getContext('2d'),
         lastTime;
         gameOver = false;
+        run = false;
 
     canvas.width = 505;
     canvas.height = 606;
@@ -50,11 +51,6 @@ var Engine = (function(global) {
         update(dt);
         render();
 
-        // TODO: Move to render and make a function
-        if(gameOver){
-            return;
-        }
-
         /* Set our lastTime variable which is used to determine the time delta
          * for the next time this function is called.
          */
@@ -63,7 +59,9 @@ var Engine = (function(global) {
         /* Use the browser's requestAnimationFrame function to call this
          * function again as soon as the browser is able to draw another frame.
          */
-        win.requestAnimationFrame(main);
+        if(run){
+            win.requestAnimationFrame(main);
+        }
     };
 
     /* This function does some initial setup that should only occur once,
@@ -91,12 +89,15 @@ var Engine = (function(global) {
     }
 
     // Checks collisions between player and enemies.
+    // TODO: Refactor, not single responsibility
+    // TODO: Not generic, can we make it so it will not be so bound to gems, enemies, player, etc...
     function checkCollisions(){
         var collision = false;
         allEnemies.forEach(function(enemy) {
             collision = hasCollision(player, enemy);
             if(collision){
                 gameOver = true;
+                run = false;
             }
         });
 
@@ -127,8 +128,10 @@ var Engine = (function(global) {
         gems = gemsToPreserve;
     }
 
-    function hasCollision(player, object){
-        return (player.x === object.x && player.y === object.y);
+
+    // Checks collisions between objects
+    function hasCollision(object1, object2){
+        return (object1.x === object2.x && object1.y === object2.y);
     }
 
     /* This is called by the update function  and loops through all of the
@@ -148,7 +151,7 @@ var Engine = (function(global) {
         player.update();
     }
 
-    /* This function initially draws the "game level", it will then call
+    /* This function initially draws the 'game level', it will then call
      * the renderEntities function. Remember, this function is called every
      * game tick (or loop of the game engine) because that's how games work -
      * they are flipbooks creating the illusion of animation but in reality
@@ -172,7 +175,7 @@ var Engine = (function(global) {
 
         /* Loop through the number of rows and columns we've defined above
          * and, using the rowImages array, draw the correct image for that
-         * portion of the "grid"
+         * portion of the 'grid'
          */
         for (row = 0; row < numRows; row++) {
             for (col = 0; col < numCols; col++) {
@@ -187,15 +190,31 @@ var Engine = (function(global) {
             }
         }
 
-        //Clear top for score and stats
-        ctx.clearRect ( 0 , 0 , 505, 20 );
-        writeText("Points: "+player.points, 0, 20, null, 12);
+        // Clear top for score and stats and render them
+        // TODO: Move into separate function
+        ctx.clearRect ( 0 , 0 , 505, 30 );
+        writeText('SCORE: '+player.points, 5, 40, 12, 'left');
         
         renderEntities();
 
+        // Render game over screen.
+        // TODO: Move into separate function and also out of engine?.
         if(gameOver){
-            writeText("GAME OVER", canvas.width / 2, canvas.height / 2, "center", 36);
-            writeText("SCORE: "+player.points, canvas.width / 2, canvas.height / 2 + 40, "center", 20);
+            writeText('GAME OVER', canvas.width / 2, canvas.height / 2, 36, 'center');
+            writeText('SCORE: '+player.points, canvas.width / 2, canvas.height / 2 + 40, 20, 'center');
+            writeText('PRESS ENTER TO START AGAIN', canvas.width / 2, canvas.height / 2 + 80, 20, 'center');
+        }
+
+        // Game just started, display instructions 
+        // TODO: Move into separate function and also out of engine?.
+        if(!gameOver && !run){
+            writeText('WELCOME IN 2K FROGGER', canvas.width / 2, canvas.height / 2 - 90, 36, 'center');
+            writeText('Get as much points as possible collecting gems', canvas.width / 2, canvas.height / 2 - 60, 15, 'center');
+            writeText('but be carefull, cause evil bugs are on the hunt!', canvas.width / 2, canvas.height / 2 - 30, 15, 'center');
+            writeText('PLAY AS ', canvas.width / 2, canvas.height / 2, 15, 'center');
+            writeText(player.name(), canvas.width / 2, canvas.height / 2 + 50, 36, 'center');
+            writeText('(or you can select your character by pressing left or right)', canvas.width / 2, canvas.height / 2 + 100, 15, 'center');
+            writeText('PRESS ENTER TO START', canvas.width / 2, canvas.height - 40, 20, 'center');
         }
     }
 
@@ -219,15 +238,19 @@ var Engine = (function(global) {
         player.render();
     }
 
-    function writeText(text, x, y, align, size){
+    // This will write on board.
+    function writeText(text, x, y, size, align){
+        if(align){
             ctx.textAlign = align;
-            ctx.font = size+"pt Impact";
-            ctx.strokeStyle = "black";
-            ctx.font = size+"pt Impact";
-            ctx.fillStyle = "white";
-            ctx.fillText(text, x, y);
-            ctx.lineWidth = 1;
-            ctx.strokeText(text, x, y);
+        }
+            
+        ctx.font = size+'pt Impact';
+        ctx.strokeStyle = 'black';
+        ctx.font = size+'pt Impact';
+        ctx.fillStyle = 'white';
+        ctx.fillText(text, x, y);
+        ctx.lineWidth = 1;
+        ctx.strokeText(text, x, y);
     };
 
     /* This function does nothing but it could have been a good place to
@@ -237,6 +260,24 @@ var Engine = (function(global) {
     function reset() {
         // noop
         gameOver = false;
+        player.reset();
+        //player = new Player();
+    }
+
+    // Checks if game is over
+    function isGameOver() {
+        return gameOver;
+    }
+
+    // Checks if game is running
+    function isGameRunning() {
+        return run;
+    }
+
+    // Starts the game
+    function runGame() {
+        run = true;
+        main();
     }
 
     /* Go ahead and load all of the images we know we're going to need to
@@ -248,9 +289,14 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
+        'images/Gem Blue.png',
+        'images/Gem Green.png',
+        'images/Gem Orange.png',
         'images/char-boy.png',
         'images/char-cat-girl.png',
-        'images/Gem Blue.png'
+        'images/char-horn-girl.png',
+        'images/char-pink-girl.png',
+        'images/char-princess-girl.png'
     ]);
     Resources.onReady(init);
 
@@ -259,4 +305,15 @@ var Engine = (function(global) {
      * from within their app.js files.
      */
     global.ctx = ctx;
+
+    /* This object defines the publicly accessible functions available to
+     * developers by creating a global Engine object.
+     */
+    window.Engine = {
+        init: init,
+        isGameOver: isGameOver,
+        isGameRunning: isGameRunning,
+        runGame: runGame
+    };
+
 })(this);
