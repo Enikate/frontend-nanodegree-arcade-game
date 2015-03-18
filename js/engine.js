@@ -1,3 +1,9 @@
+'use strict';
+
+/*global game*/
+/*global Resources*/
+/*global window*/
+
 /* Engine.js
  * This file provides the game loop functionality (update entities and render),
  * draws the initial game board on the screen, and then calls the update and
@@ -47,7 +53,7 @@
          */
         if(game.run){
             update(dt);
-        };
+        }
         
         render();
 
@@ -61,8 +67,8 @@
          */
         if(game.run){
             win.requestAnimationFrame(run);
-        };
-    };
+        }
+    }
 
     /* This function does some initial setup that should only occur once,
      * particularly setting the lastTime variable that is required for the
@@ -72,7 +78,7 @@
         reset();
         lastTime = Date.now();
         run();
-    };
+    }
 
     /* This function is called by run (our game loop) and itself calls all
      * of the functions which may need to update entity's data. Based on how
@@ -86,12 +92,12 @@
     function update(dt) {
         updateEntities(dt);
         checkCollisions();
-    };
+    }
 
     // Checks collisions between player and other entities.
     function checkCollisions(){
         game.checkCollisions();
-    };
+    }
 
     /* This is called by the update function  and loops through all of the
      * objects within your allEnemies array as defined in app.js and calls
@@ -102,7 +108,7 @@
      */
     function updateEntities(dt) {
         game.updateEntities(dt);
-    };
+    }
 
     /* This function initially draws the 'game level', it will then call
      * the renderEntities function. Remember, this function is called every
@@ -140,11 +146,11 @@
                  * we're using them over and over.
                  */
                 ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
-            };
-        };
+            }
+        }
                 
         renderEntities();
-    };
+    }
 
     /* This function is called by the render function and is called on each game
      * tick. It's purpose is to then call the render functions you have defined
@@ -155,7 +161,7 @@
          * the render function you have defined.
          */
         game.renderEntities();
-    };
+    }
 
     /* This function does nothing but it could have been a good place to
      * handle game reset states - maybe a new game menu or a game over screen
@@ -164,7 +170,7 @@
     function reset() {
         // noop
         game.reset();
-    };
+    }
 
     /* Go ahead and load all of the images we know we're going to need to
      * draw our game level. Then set init as the callback method, so that when

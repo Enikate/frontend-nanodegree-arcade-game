@@ -1,3 +1,10 @@
+'use strict';
+
+/*global ctx*/
+/*global Resources*/
+/*global Engine*/
+/*global document*/
+
 /**
  * Returns a random integer between min (inclusive) and max (inclusive)
  * Using Math.round() will give you a non-uniform distribution!
@@ -11,18 +18,20 @@ var imageOffsetX = 101;
 var imageOffsetY = 73;
 
 // Set of character skins
-var skins = new Array();
-skins.push({name : 'The boy', skin: 'images/char-boy.png'});
-skins.push({name : 'The cat girl', skin: 'images/char-cat-girl.png'});
-skins.push({name : 'The horn girl', skin: 'images/char-horn-girl.png'});
-skins.push({name : 'The pink girl', skin: 'images/char-pink-girl.png'});
-skins.push({name : 'The princess', skin: 'images/char-princess-girl.png'});
+var skins = [
+    {name : 'The boy', skin: 'images/char-boy.png'},
+    {name : 'The cat girl', skin: 'images/char-cat-girl.png'},
+    {name : 'The horn girl', skin: 'images/char-horn-girl.png'},
+    {name : 'The pink girl', skin: 'images/char-pink-girl.png'},
+    {name : 'The princess', skin: 'images/char-princess-girl.png'}
+];
 
 // Set of gems
-var gemTypes = new Array();
-gemTypes.push('images/Gem Blue.png');
-gemTypes.push('images/Gem Green.png');
-gemTypes.push('images/Gem Orange.png');
+var gemTypes = [
+    'images/Gem Blue.png',
+    'images/Gem Green.png',
+    'images/Gem Orange.png'
+];
 
 // Enemies our player must avoid
 var Enemy = function() {
@@ -53,13 +62,13 @@ Enemy.prototype.update = function(dt) {
     if(this.speed <= 0){
         this.x++;
         this.speed = getRandomInt(1,4);
-    };
+    }
 
     // If it went off reset it.
     if(this.x > 4){
         this.x = -getRandomInt(1,4);
         this.y = getRandomInt(1,3);
-    };
+    }
 };
 
 // Draw the enemy on the screen, required method for game
@@ -77,6 +86,7 @@ var Player = function() {
 
 // Draw the player
 Player.prototype.render = function() {
+    console.log(this.x, this.y);
     ctx.drawImage(Resources.get(skins[this.skinType].skin), this.x*imageOffsetX, this.y*imageOffsetY);  
 };
 
@@ -85,49 +95,49 @@ Player.prototype.reset = function() {
     this.x = 2;
     this.y = 5;
     this.points = 0;
-}
+};
 
 // Move player according to key pressed.
 Player.prototype.handleInput = function(keyPressed) {
     // Move left
     if(keyPressed === 'left' && this.x > 0){
         this.x--;
-    };
+    }
 
     // Move right
     if(keyPressed === 'right' && this.x < 4 ){
         this.x++;
-    };
+    }
 
     // Move up
-    if(keyPressed === 'up' && this.y > 1){
+    if(keyPressed === 'up' && this.y > 0){
         this.y--;
-    };
+    }
 
     // Move down
     if(keyPressed === 'down' && this.y < 5){
         this.y++;
-    };
-}
+    }
+};
 
 // Get player name according to the skin selected.
 Player.prototype.name = function(){
     return skins[this.skinType].name;
-}
+};
 
 // Select next skin
 Player.prototype.nextSkin = function(){
     if(this.skinType < skins.length - 1){
         this.skinType++;
-    };
-}
+    }
+};
 
 // Select previous skin
 Player.prototype.prevSkin = function(){
     if(this.skinType > 0){
         this.skinType--;
-    };
-}
+    }
+};
 
 //Gems player collects
 var Gem = function(x, y) {
@@ -138,7 +148,7 @@ var Gem = function(x, y) {
     this.x = x;
     // Position for lane.
     this.y = y;
-}
+};
 
 // Draw the gem
 Gem.prototype.render = function() {
@@ -153,23 +163,23 @@ var Game = function(numberOfGems, numberOfEnemies) {
     this.numberOfEnemies = numberOfEnemies;
 
     this.player = new Player();
-    this.allEnemies = new Array();
-    this._createEnemies(numberOfEnemies);
-    this.gems = new Array();
-    this._createGems(numberOfGems);
+    this.allEnemies = [];
+    this._createEnemies();
+    this.gems = [];
+    this._createGems();
     this.gameOver = false;
     this.run = false;
-}
+};
 
 // Reset the game so we can restart
 Game.prototype.reset = function(){
     this.player.reset();
-    this.allEnemies = new Array();
+    this.allEnemies = [];
     this._createEnemies();
-    this.gems = new Array();
+    this.gems = [];
     this._createGems();
     this.gameOver = false;
-}
+};
 
 // Render all entities and game screens
 Game.prototype.renderEntities = function(){
@@ -187,19 +197,19 @@ Game.prototype.renderEntities = function(){
 
     if(this.gameOver){
         this._renderGameOver();
-    };
+    }
 
     // Game just started, display instructions 
     if(!this.gameOver && !this.run){
         this._renderStartScreen();
     }
-}
+};
 
 // This will write on board.
 function writeText(text, x, y, size, align){
     if(align){
         ctx.textAlign = align;
-    };
+    }
         
     ctx.font = size+'pt Impact';
     ctx.strokeStyle = 'black';
@@ -208,38 +218,39 @@ function writeText(text, x, y, size, align){
     ctx.fillText(text, x, y);
     ctx.lineWidth = 1;
     ctx.strokeText(text, x, y);
-};
+}
 
 // Clear top for score and stats and render them
 Game.prototype._renderScore = function(){
     ctx.clearRect ( 0 , 0 , 505, 50 );
     writeText('SCORE: '+ this.player.points, 5, 40, 12, 'left');
-}
+};
 
 // Render game over screen.
 Game.prototype._renderGameOver = function(){
     writeText('GAME OVER', ctx.canvas.width / 2, ctx.canvas.height / 2, 36, 'center');
     writeText('SCORE: '+this.player.points, ctx.canvas.width / 2, ctx.canvas.height / 2 + 40, 20, 'center');
     writeText('PRESS ENTER TO START AGAIN', ctx.canvas.width / 2, ctx.canvas.height / 2 + 80, 20, 'center');
-}
+};
 
 // Render main menu
 Game.prototype._renderStartScreen = function(){
     writeText('2K FROGGER', ctx.canvas.width / 2, ctx.canvas.height / 2 - 90, 36, 'center');
     writeText('Get as much points as possible collecting gems', ctx.canvas.width / 2, ctx.canvas.height / 2 - 60, 15, 'center');
     writeText('but be carefull, cause evil bugs are on the hunt!', ctx.canvas.width / 2, ctx.canvas.height / 2 - 30, 15, 'center');
-    writeText('PLAY AS ', ctx.canvas.width / 2, ctx.canvas.height / 2, 15, 'center');
-    writeText(this.player.name(), ctx.canvas.width / 2, ctx.canvas.height / 2 + 50, 36, 'center');
-    writeText('(or you can select your character by pressing left or right)', ctx.canvas.width / 2, ctx.canvas.height / 2 + 100, 15, 'center');
+    writeText('Stay away from water cause you character can not swim.', ctx.canvas.width / 2, ctx.canvas.height / 2, 15, 'center');
+    writeText('PLAY AS ', ctx.canvas.width / 2, ctx.canvas.height / 2+30, 15, 'center');
+    writeText(this.player.name(), ctx.canvas.width / 2, ctx.canvas.height / 2 + 80, 36, 'center');
+    writeText('(or you can select your character by pressing left or right)', ctx.canvas.width / 2, ctx.canvas.height / 2 + 130, 15, 'center');
     writeText('PRESS ENTER TO START', ctx.canvas.width / 2, ctx.canvas.height - 40, 20, 'center');
-}
+};
 
 // Update all necessary entities
 Game.prototype.updateEntities = function(dt){
     this.allEnemies.forEach(function(enemy) {
         enemy.update(dt);
     });
-}
+};
 
 // Checks collisions between two objects
 function hasCollision(object1, object2){
@@ -251,29 +262,34 @@ Game.prototype.checkCollisions = function(){
 
     // Character may die when collide with enemy.
     var collision = false;
-
     for (var i = this.allEnemies.length - 1; i >= 0; i--) {
         var enemy = this.allEnemies[i];
         collision = hasCollision(this.player, enemy);
         if(collision){
             this.gameOver = true;
             this.run = false;
-        };
-    };
+        }
+    }
+
+    // Character will die when in water.
+    if(this.player.y === 0){
+        this.gameOver = true;
+        this.run = false;
+    }
 
     // Character may collect points when collide with gem.
-    var gemsToPreserved = Array();
+    var gemsToPreserved = [];
     var addGems = false;
-    for (var i = this.gems.length - 1; i >= 0; i--) {
-        var gem = this.gems[i];
+    for (var j = this.gems.length - 1; j >= 0; j--) {
+        var gem = this.gems[j];
         collision = hasCollision(this.player, gem);
         if(collision){
             this.player.points++;
             addGems = true;
         } else {
             gemsToPreserved.push(gem);
-        };
-    };
+        }
+    }
 
     // If necessary add gems so we have always the same number
     if(addGems){
@@ -281,31 +297,33 @@ Game.prototype.checkCollisions = function(){
         this._createGems();
     }
     
-}
+};
 
 // Cteate enemies up to supplied number
-Game.prototype._createEnemies = function(numberOfEnemies){
+Game.prototype._createEnemies = function(){
     for(var i = 0; i<this.numberOfEnemies; i++){
         this.allEnemies.push(new Enemy());
     }    
-}
+};
 
 // Create gems with restriction to put only one for each selected tile.
 // Gets gems array and fills that array up to number of gems taking care of unique gam possitions.
-Game.prototype._createGems = function(numberOfGems){
+Game.prototype._createGems = function(){
     while(this.gems.length < this.numberOfGems){
         var newGem = new Gem(getRandomInt(0,4), getRandomInt(1,3));
         var theSame = false;
-        this.gems.forEach(function(oldGem) {
+
+        for (var i = this.gems.length - 1; i >= 0; i--) {
+            var oldGem = this.gems[i];
             if(oldGem.x === newGem.x && oldGem.y === newGem.y){
                 theSame = true;
-            };
-        });
+            }
+        }
 
         if(!theSame){
             this.gems.push(newGem);
-        };
-    };
+        }
+    }
 };
 
 // Handle game input when in menus
@@ -317,23 +335,23 @@ Game.prototype.handleInput = function(keyPressed){
         if(!this.gameOver){
             if(keyPressed === 'right'){
                 this.player.nextSkin();
-            };
+            }
 
             if(keyPressed === 'left'){
                 this.player.prevSkin();
-            };
+            }
 
             if(keyPressed === 'enter'){
                 this.run = true;   
-            };
+            }
             Engine.run();
         } else {
             if(keyPressed === 'enter'){
                 this.reset();
                 Engine.run();    
-            };
-        };
-    };
+            }
+        }
+    }
 };
 
 // Create new game!
