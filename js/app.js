@@ -6,19 +6,19 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Basic settings for the game.
-var numberOfEnemies = 5;
-var numberOfGems = 3;
+// Offset for images.
 var imageOffsetX = 101;
 var imageOffsetY = 73;
 
+// Set of character skins
 var skins = new Array();
-skins.push({name : "The boy", skin: 'images/char-boy.png'});
-skins.push({name : "The cat girl", skin: 'images/char-cat-girl.png'});
-skins.push({name : "The horn girl", skin: 'images/char-horn-girl.png'});
-skins.push({name : "The pink girl", skin: 'images/char-pink-girl.png'});
-skins.push({name : "The princess", skin: 'images/char-princess-girl.png'});
+skins.push({name : 'The boy', skin: 'images/char-boy.png'});
+skins.push({name : 'The cat girl', skin: 'images/char-cat-girl.png'});
+skins.push({name : 'The horn girl', skin: 'images/char-horn-girl.png'});
+skins.push({name : 'The pink girl', skin: 'images/char-pink-girl.png'});
+skins.push({name : 'The princess', skin: 'images/char-princess-girl.png'});
 
+// Set of gems
 var gemTypes = new Array();
 gemTypes.push('images/Gem Blue.png');
 gemTypes.push('images/Gem Green.png');
@@ -53,13 +53,13 @@ Enemy.prototype.update = function(dt) {
     if(this.speed <= 0){
         this.x++;
         this.speed = getRandomInt(1,4);
-    }
+    };
 
     // If it went off reset it.
     if(this.x > 4){
         this.x = -getRandomInt(1,4);
         this.y = getRandomInt(1,3);
-    }
+    };
 };
 
 // Draw the enemy on the screen, required method for game
@@ -68,8 +68,6 @@ Enemy.prototype.render = function() {
 };
 
 // Player class
-// This class requires an update(), render() and
-// a handleInput() method.
 var Player = function() {
     this.x = 2;
     this.y = 5;
@@ -82,12 +80,7 @@ Player.prototype.render = function() {
     ctx.drawImage(Resources.get(skins[this.skinType].skin), this.x*imageOffsetX, this.y*imageOffsetY);  
 };
 
-// Update the player's position, required method for game
-// Parameter: dt, a time delta between ticks
-Player.prototype.update = function(dt) {
-    // Not necessary for a player.
-};
-
+// Reset position and points
 Player.prototype.reset = function() {
     this.x = 2;
     this.y = 5;
@@ -99,22 +92,22 @@ Player.prototype.handleInput = function(keyPressed) {
     // Move left
     if(keyPressed === 'left' && this.x > 0){
         this.x--;
-    }
+    };
 
     // Move right
     if(keyPressed === 'right' && this.x < 4 ){
         this.x++;
-    }
+    };
 
     // Move up
     if(keyPressed === 'up' && this.y > 1){
         this.y--;
-    }
+    };
 
     // Move down
     if(keyPressed === 'down' && this.y < 5){
         this.y++;
-    }
+    };
 }
 
 // Get player name according to the skin selected.
@@ -122,104 +115,229 @@ Player.prototype.name = function(){
     return skins[this.skinType].name;
 }
 
+// Select next skin
 Player.prototype.nextSkin = function(){
-    if(player.skinType < skins.length - 1){
-        player.skinType++;
-    }
+    if(this.skinType < skins.length - 1){
+        this.skinType++;
+    };
 }
 
+// Select previous skin
 Player.prototype.prevSkin = function(){
-    if(player.skinType > 0){
-        player.skinType--;
-    }
+    if(this.skinType > 0){
+        this.skinType--;
+    };
 }
 
 //Gems player collects
 var Gem = function(x, y) {
-    // Variables applied to each of our instances go here,
-    // we've provided one for you to get started
-
     // The image/sprite for our gems, this uses
     // a helper we've provided to easily load images
     this.sprite = gemTypes[getRandomInt(0,2)];
-    // Random row.
+    // Position for row.
     this.x = x;
-    // Random lane.
+    // Position for lane.
     this.y = y;
 }
 
-// Draw the player
+// Draw the gem
 Gem.prototype.render = function() {
     // Offset slightly changed by scaling.
     ctx.drawImage(Resources.get(this.sprite), this.x*imageOffsetX, this.y*(imageOffsetY+7), 101, 140);
 };
 
-// Update the player's position, required method for game
-// Parameter: dt, a time delta between ticks
-Gem.prototype.update = function(dt) {
-    // Empty, gems do not need to be updated.
+// Main game object to control the game
+// Sets gems and enamies to control difficulty
+var Game = function(numberOfGems, numberOfEnemies) {
+    this.numberOfGems = numberOfGems;
+    this.numberOfEnemies = numberOfEnemies;
+
+    this.player = new Player();
+    this.allEnemies = new Array();
+    this._createEnemies(numberOfEnemies);
+    this.gems = new Array();
+    this._createGems(numberOfGems);
+    this.gameOver = false;
+    this.run = false;
+}
+
+// Reset the game so we can restart
+Game.prototype.reset = function(){
+    this.player.reset();
+    this.allEnemies = new Array();
+    this._createEnemies();
+    this.gems = new Array();
+    this._createGems();
+    this.gameOver = false;
+}
+
+// Render all entities and game screens
+Game.prototype.renderEntities = function(){
+    this._renderScore();
+
+    this.gems.forEach(function(gem) {
+        gem.render();
+    });
+
+    this.allEnemies.forEach(function(enemy) {
+        enemy.render();
+    });
+
+    this.player.render();
+
+    if(this.gameOver){
+        this._renderGameOver();
+    };
+
+    // Game just started, display instructions 
+    if(!this.gameOver && !this.run){
+        this._renderStartScreen();
+    }
+}
+
+// This will write on board.
+function writeText(text, x, y, size, align){
+    if(align){
+        ctx.textAlign = align;
+    };
+        
+    ctx.font = size+'pt Impact';
+    ctx.strokeStyle = 'black';
+    ctx.font = size+'pt Impact';
+    ctx.fillStyle = 'white';
+    ctx.fillText(text, x, y);
+    ctx.lineWidth = 1;
+    ctx.strokeText(text, x, y);
 };
 
-// Now instantiate your objects.
-// Place all enemy objects in an array called allEnemies
-// Place the player object in a variable called player
-var player = new Player();
-var allEnemies = createEnemies(numberOfEnemies);
-var gems = createGems(numberOfGems);
+// Clear top for score and stats and render them
+Game.prototype._renderScore = function(){
+    ctx.clearRect ( 0 , 0 , 505, 50 );
+    writeText('SCORE: '+ this.player.points, 5, 40, 12, 'left');
+}
+
+// Render game over screen.
+Game.prototype._renderGameOver = function(){
+    writeText('GAME OVER', ctx.canvas.width / 2, ctx.canvas.height / 2, 36, 'center');
+    writeText('SCORE: '+this.player.points, ctx.canvas.width / 2, ctx.canvas.height / 2 + 40, 20, 'center');
+    writeText('PRESS ENTER TO START AGAIN', ctx.canvas.width / 2, ctx.canvas.height / 2 + 80, 20, 'center');
+}
+
+// Render main menu
+Game.prototype._renderStartScreen = function(){
+    writeText('2K FROGGER', ctx.canvas.width / 2, ctx.canvas.height / 2 - 90, 36, 'center');
+    writeText('Get as much points as possible collecting gems', ctx.canvas.width / 2, ctx.canvas.height / 2 - 60, 15, 'center');
+    writeText('but be carefull, cause evil bugs are on the hunt!', ctx.canvas.width / 2, ctx.canvas.height / 2 - 30, 15, 'center');
+    writeText('PLAY AS ', ctx.canvas.width / 2, ctx.canvas.height / 2, 15, 'center');
+    writeText(this.player.name(), ctx.canvas.width / 2, ctx.canvas.height / 2 + 50, 36, 'center');
+    writeText('(or you can select your character by pressing left or right)', ctx.canvas.width / 2, ctx.canvas.height / 2 + 100, 15, 'center');
+    writeText('PRESS ENTER TO START', ctx.canvas.width / 2, ctx.canvas.height - 40, 20, 'center');
+}
+
+// Update all necessary entities
+Game.prototype.updateEntities = function(dt){
+    this.allEnemies.forEach(function(enemy) {
+        enemy.update(dt);
+    });
+}
+
+// Checks collisions between two objects
+function hasCollision(object1, object2){
+    return (object1.x === object2.x && object1.y === object2.y);
+}
+
+// Contorols all collisions in a game
+Game.prototype.checkCollisions = function(){
+
+    // Character may die when collide with enemy.
+    var collision = false;
+
+    for (var i = this.allEnemies.length - 1; i >= 0; i--) {
+        var enemy = this.allEnemies[i];
+        collision = hasCollision(this.player, enemy);
+        if(collision){
+            this.gameOver = true;
+            this.run = false;
+        };
+    };
+
+    // Character may collect points when collide with gem.
+    var gemsToPreserved = Array();
+    var addGems = false;
+    for (var i = this.gems.length - 1; i >= 0; i--) {
+        var gem = this.gems[i];
+        collision = hasCollision(this.player, gem);
+        if(collision){
+            this.player.points++;
+            addGems = true;
+        } else {
+            gemsToPreserved.push(gem);
+        };
+    };
+
+    // If necessary add gems so we have always the same number
+    if(addGems){
+        this.gems = gemsToPreserved;
+        this._createGems();
+    }
+    
+}
 
 // Cteate enemies up to supplied number
-function createEnemies(numberOfEnemies){
-    var enemies = new Array();
-    // Add enemies.
-    for(var i = 0; i<numberOfEnemies; i++){
-        enemies.push(new Enemy());
+Game.prototype._createEnemies = function(numberOfEnemies){
+    for(var i = 0; i<this.numberOfEnemies; i++){
+        this.allEnemies.push(new Enemy());
     }    
-    return enemies;
 }
 
 // Create gems with restriction to put only one for each selected tile.
-function createGems(numberOfGems){
-    var gems = new Array();
-    while(gems.length < numberOfGems){
-        var newGem = new Gem(getRandomInt(0,4), getRandomInt(1,3))
+// Gets gems array and fills that array up to number of gems taking care of unique gam possitions.
+Game.prototype._createGems = function(numberOfGems){
+    while(this.gems.length < this.numberOfGems){
+        var newGem = new Gem(getRandomInt(0,4), getRandomInt(1,3));
         var theSame = false;
-        gems.forEach(function(oldGem) {
+        this.gems.forEach(function(oldGem) {
             if(oldGem.x === newGem.x && oldGem.y === newGem.y){
                 theSame = true;
-            }
+            };
         });
 
         if(!theSame){
-            gems.push(newGem);
-        }
-    }
-
-    return gems;
-}
+            this.gems.push(newGem);
+        };
+    };
+};
 
 // Handle game input when in menus
-function handleGameInput(keyPressed){
-        if(!Engine.isGameOver()){
-            console.log(keyPressed);
+Game.prototype.handleInput = function(keyPressed){
+    if(this.run){
+        //If game is running we only care about player handling Input
+        this.player.handleInput(keyPressed);
+    } else {
+        if(!this.gameOver){
             if(keyPressed === 'right'){
-                player.nextSkin();
-            }
+                this.player.nextSkin();
+            };
 
             if(keyPressed === 'left'){
-                player.prevSkin();
-            }
-
-            Engine.init();
+                this.player.prevSkin();
+            };
 
             if(keyPressed === 'enter'){
-                Engine.runGame();    
+                this.run = true;   
             };
+            Engine.run();
         } else {
             if(keyPressed === 'enter'){
-                Engine.init();    
+                this.reset();
+                Engine.run();    
             };
-        }
-}
+        };
+    };
+};
+
+// Create new game!
+var game = new Game(3, 5);
 
 // This listens for key presses and sends the keys to your
 // Player.handleInput() method. You don't need to modify this.
@@ -233,15 +351,7 @@ document.addEventListener('keyup', function(e) {
         13: 'enter'
     };
 
-    var keyPressed = allowedKeys[e.keyCode]
-
-
-
-    if(Engine.isGameRunning()){
-        //If game is running we only care about player handling Input
-        player.handleInput(keyPressed);
-    } else {
-        //If game is not running we are about game handling Input
-        handleGameInput(keyPressed);
-    }
+    var keyPressed = allowedKeys[e.keyCode];
+    game.handleInput(keyPressed);
+    
 });

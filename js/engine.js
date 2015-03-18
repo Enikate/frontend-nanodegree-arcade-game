@@ -24,31 +24,31 @@
         canvas = doc.createElement('canvas'),
         ctx = canvas.getContext('2d'),
         lastTime;
-        gameOver = false;
-        run = false;
 
     canvas.width = 505;
     canvas.height = 606;
     doc.body.appendChild(canvas);
 
-
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
      */
-    function main() {
+    function run() {
         /* Get our time delta information which is required if your game
          * requires smooth animation. Because everyone's computer processes
          * instructions at different speeds we need a constant value that
          * would be the same for everyone (regardless of how fast their
          * computer is) - hurray time!
          */
-        var now = Date.now(),
-            dt = (now - lastTime) / 1000.0;
+        var now = Date.now();
+        var dt = (now - lastTime) / 1000.0;
 
         /* Call our update/render functions, pass along the time delta to
          * our update function since it may be used for smooth animation.
          */
-        update(dt);
+        if(game.run){
+            update(dt);
+        };
+        
         render();
 
         /* Set our lastTime variable which is used to determine the time delta
@@ -59,9 +59,9 @@
         /* Use the browser's requestAnimationFrame function to call this
          * function again as soon as the browser is able to draw another frame.
          */
-        if(run){
-            win.requestAnimationFrame(main);
-        }
+        if(game.run){
+            win.requestAnimationFrame(run);
+        };
     };
 
     /* This function does some initial setup that should only occur once,
@@ -71,10 +71,10 @@
     function init() {
         reset();
         lastTime = Date.now();
-        main();
-    }
+        run();
+    };
 
-    /* This function is called by main (our game loop) and itself calls all
+    /* This function is called by run (our game loop) and itself calls all
      * of the functions which may need to update entity's data. Based on how
      * you implement your collision detection (when two entities occupy the
      * same space, for instance when your character should die), you may find
@@ -86,53 +86,12 @@
     function update(dt) {
         updateEntities(dt);
         checkCollisions();
-    }
+    };
 
-    // Checks collisions between player and enemies.
-    // TODO: Refactor, not single responsibility
-    // TODO: Not generic, can we make it so it will not be so bound to gems, enemies, player, etc...
+    // Checks collisions between player and other entities.
     function checkCollisions(){
-        var collision = false;
-        allEnemies.forEach(function(enemy) {
-            collision = hasCollision(player, enemy);
-            if(collision){
-                gameOver = true;
-                run = false;
-            }
-        });
-
-        var gemsToPreserve = Array()
-        gems.forEach(function(gem) {
-            collision = hasCollision(player, gem);
-            if(collision){
-                player.points++;
-            } else {
-                gemsToPreserve.push(gem);
-            }
-        });
-
-        while(gemsToPreserve.length < 3){
-            var newGem = new Gem(getRandomInt(0,4), getRandomInt(1,3))
-            var theSame = false;
-            gemsToPreserve.forEach(function(oldGem) {
-                if(oldGem.x === newGem.x && oldGem.y === newGem.y){
-                    theSame = true;
-                }
-            });
-
-            if(!theSame){
-                gemsToPreserve.push(newGem);
-            }
-        }
-
-        gems = gemsToPreserve;
-    }
-
-
-    // Checks collisions between objects
-    function hasCollision(object1, object2){
-        return (object1.x === object2.x && object1.y === object2.y);
-    }
+        game.checkCollisions();
+    };
 
     /* This is called by the update function  and loops through all of the
      * objects within your allEnemies array as defined in app.js and calls
@@ -142,14 +101,8 @@
      * render methods.
      */
     function updateEntities(dt) {
-        allEnemies.forEach(function(enemy) {
-            enemy.update(dt);
-        });
-        gems.forEach(function(gem) {
-            gem.update(dt);
-        });
-        player.update();
-    }
+        game.updateEntities(dt);
+    };
 
     /* This function initially draws the 'game level', it will then call
      * the renderEntities function. Remember, this function is called every
@@ -187,70 +140,21 @@
                  * we're using them over and over.
                  */
                 ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
-            }
-        }
-
-        // Clear top for score and stats and render them
-        // TODO: Move into separate function
-        ctx.clearRect ( 0 , 0 , 505, 30 );
-        writeText('SCORE: '+player.points, 5, 40, 12, 'left');
-        
+            };
+        };
+                
         renderEntities();
-
-        // Render game over screen.
-        // TODO: Move into separate function and also out of engine?.
-        if(gameOver){
-            writeText('GAME OVER', canvas.width / 2, canvas.height / 2, 36, 'center');
-            writeText('SCORE: '+player.points, canvas.width / 2, canvas.height / 2 + 40, 20, 'center');
-            writeText('PRESS ENTER TO START AGAIN', canvas.width / 2, canvas.height / 2 + 80, 20, 'center');
-        }
-
-        // Game just started, display instructions 
-        // TODO: Move into separate function and also out of engine?.
-        if(!gameOver && !run){
-            writeText('WELCOME IN 2K FROGGER', canvas.width / 2, canvas.height / 2 - 90, 36, 'center');
-            writeText('Get as much points as possible collecting gems', canvas.width / 2, canvas.height / 2 - 60, 15, 'center');
-            writeText('but be carefull, cause evil bugs are on the hunt!', canvas.width / 2, canvas.height / 2 - 30, 15, 'center');
-            writeText('PLAY AS ', canvas.width / 2, canvas.height / 2, 15, 'center');
-            writeText(player.name(), canvas.width / 2, canvas.height / 2 + 50, 36, 'center');
-            writeText('(or you can select your character by pressing left or right)', canvas.width / 2, canvas.height / 2 + 100, 15, 'center');
-            writeText('PRESS ENTER TO START', canvas.width / 2, canvas.height - 40, 20, 'center');
-        }
-    }
+    };
 
     /* This function is called by the render function and is called on each game
      * tick. It's purpose is to then call the render functions you have defined
      * on your enemy and player entities within app.js
      */
     function renderEntities() {
-        /* Loop through all of the objects within the allEnemies array and call
+        /* Loop through all of the objects within the game array and call
          * the render function you have defined.
          */
-
-        gems.forEach(function(gem) {
-            gem.render();
-        });
-
-        allEnemies.forEach(function(enemy) {
-            enemy.render();
-        });
-
-        player.render();
-    }
-
-    // This will write on board.
-    function writeText(text, x, y, size, align){
-        if(align){
-            ctx.textAlign = align;
-        }
-            
-        ctx.font = size+'pt Impact';
-        ctx.strokeStyle = 'black';
-        ctx.font = size+'pt Impact';
-        ctx.fillStyle = 'white';
-        ctx.fillText(text, x, y);
-        ctx.lineWidth = 1;
-        ctx.strokeText(text, x, y);
+        game.renderEntities();
     };
 
     /* This function does nothing but it could have been a good place to
@@ -259,26 +163,8 @@
      */
     function reset() {
         // noop
-        gameOver = false;
-        player.reset();
-        //player = new Player();
-    }
-
-    // Checks if game is over
-    function isGameOver() {
-        return gameOver;
-    }
-
-    // Checks if game is running
-    function isGameRunning() {
-        return run;
-    }
-
-    // Starts the game
-    function runGame() {
-        run = true;
-        main();
-    }
+        game.reset();
+    };
 
     /* Go ahead and load all of the images we know we're going to need to
      * draw our game level. Then set init as the callback method, so that when
@@ -311,9 +197,7 @@
      */
     window.Engine = {
         init: init,
-        isGameOver: isGameOver,
-        isGameRunning: isGameRunning,
-        runGame: runGame
+        run: run
     };
 
 })(this);
